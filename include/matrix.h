@@ -8,17 +8,15 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <algorithm>
-#include <chrono>
 #include "mmio.h"
+#include <filesystem>
 
-struct GraphInfo {
-    std::string graphName;
-    std::string graphPath;
-    std::string logPath;
-    std::string format;
-};
+namespace fs = std::filesystem;
+
+
 
 template <typename ValT>
 class spMtx {
@@ -32,8 +30,11 @@ public:
     int* Col = nullptr;
     ValT* Val = nullptr;
 
-    spMtx(const char *filename, const std::string &format) {
-        if (format == "mtx" && read_mtx_to_crs(filename)) {
+    spMtx(const char *filename) {
+		fs::path p = filename;
+		std::string format = p.extension().string().erase(0, 1);
+
+		if (format == "mtx" && read_mtx_to_crs(filename)) {
             std::cout << "Can't read MTX from file\n";
             throw "Can't read MTX from file";
         } else if (format == "crs" && read_crs_to_crs(filename)) {

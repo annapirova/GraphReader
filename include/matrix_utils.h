@@ -32,21 +32,6 @@ spMtx<int> generate_mask(const size_t n, const size_t min_deg, const size_t max_
     return mask;
 }
 
-template<typename T>
-void full_mask(spMtx<T> &mask, const size_t n) {
-    mask.m = n;
-    mask.nz = n*n;
-    mask.Rst = new int[n+1];
-    mask.Col = new int[n*n];
-
-    for (size_t i = 0; i <= n; ++i)
-        mask.Rst[i] = i*n;
-    size_t curr_pos = 0;
-    for (size_t i = 0; i < n; ++i) {
-        for (size_t j = 0; j < n; ++j)
-            mask.Col[curr_pos++] = j;
-    }
-}
 
 spMtx<int> generate_adjacency_matrix(const size_t n, const size_t min_deg, const size_t max_deg) {
     spMtx<int> Res = generate_mask(n, min_deg, max_deg);
@@ -56,4 +41,30 @@ spMtx<int> generate_adjacency_matrix(const size_t n, const size_t min_deg, const
         Res.Val[j] = 1;
 
     return build_symm_from_lower(extract_lower_triangle(Res));
+}
+
+template <typename T>
+spMtx<T> transpose(const spMtx<T> &A) {
+    spMtx<T> AT(A.n, A.m, A.nz);
+
+    // filling the column indices array and current column positions array
+    for (size_t i = 0; i < A.nz; ++i)
+        ++AT.Rst[A.Col[i]+1];
+    for (size_t i = 0; i < AT.m; ++i)
+        AT.Rst[i+1] += AT.Rst[i];
+
+    // transposing
+    for (size_t i = 0; i < A.m; ++i) {
+        for (int j = A.Rst[i]; j < A.Rst[i+1]; ++j) {
+            AT.Val[AT.Rst[A.Col[j]]] = std::move(A.Val[j]);
+            AT.Col[AT.Rst[A.Col[j]]++] = i;
+        }
+    }
+    // set Rst indices to normal state
+    // AT.Rst[AT.m] already has the correct value
+    for (int i = AT.m - 1; i > 0; --i)
+        AT.Rst[i] = AT.Rst[i-1];
+    AT.Rst[0] = 0;
+
+    return AT;
 }
